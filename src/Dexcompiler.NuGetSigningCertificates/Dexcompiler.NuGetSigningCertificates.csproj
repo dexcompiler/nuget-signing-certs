@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <LangVersion>preview</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <RootNamespace>Dexcompiler.NuGetSigningCertificates</RootNamespace>
+    <AssemblyName>Dexcompiler.NuGetSigningCertificates</AssemblyName>
+    <OutputType>Library</OutputType>
+
+    <PackageId>Dexcompiler.NuGetSigningCertificates</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Dexter Ajoku</Authors>
+    <Description>Generate NuGet-compatible RSA code-signing certificates, export PFX artifacts, and validate certificate profiles before signing packages.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>nuget;signing;certificate;x509;rsa;pkcs12;pfx;codesigning</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/dexcompiler/nuget-signing-certs</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
