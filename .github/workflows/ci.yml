@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-test-pack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore
+        run: dotnet restore NuGetSigningCertificates.sln --nologo
+
+      - name: Build
+        run: dotnet build NuGetSigningCertificates.sln --configuration Release --no-restore --nologo
+
+      - name: Test
+        run: dotnet test tests/Dexcompiler.NuGetSigningCertificates.Tests/Dexcompiler.NuGetSigningCertificates.Tests.csproj --configuration Release --no-build --nologo
+
+      - name: Pack
+        run: dotnet pack src/Dexcompiler.NuGetSigningCertificates/Dexcompiler.NuGetSigningCertificates.csproj --configuration Release --no-build --nologo -o artifacts
+
