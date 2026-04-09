@@ -42,18 +42,24 @@ if (!validation.IsValid)
 byte[] pfx = Pkcs12CertificateStore.Export(cert, "strong-password");
 ```
 
-## CLI quick start
+## CLI quick start (`nusign`)
 
-Build CLI:
+Install as a .NET global tool:
 
 ```bash
-dotnet build src/Dexcompiler.NuGetSigningCertificates.Cli/Dexcompiler.NuGetSigningCertificates.Cli.csproj -c Release
+dotnet tool install -g Dexcompiler.NuGetSigningCertificates.Cli
+```
+
+Then run directly from your shell:
+
+```bash
+nusign --help
 ```
 
 Generate local/dev signing certificate PFX:
 
 ```bash
-dotnet run --project src/Dexcompiler.NuGetSigningCertificates.Cli -- generate-dev-cert \
+nusign generate-dev-cert \
   --output-pfx ./artifacts/dev-signing.pfx \
   --password "<strong-password>" \
   --subject "CN=My NuGet Dev Signing Cert"
@@ -63,7 +69,7 @@ Sign packages from another already-packed project:
 
 ```bash
 export NUGET_SIGN_CERT_PASSWORD=<strong-password>
-dotnet run --project src/Dexcompiler.NuGetSigningCertificates.Cli -- sign \
+nusign sign \
   --input ../other-project/artifacts \
   --pfx-path ./artifacts/dev-signing.pfx \
   --timestamp-url https://timestamp.digicert.com \
@@ -73,8 +79,7 @@ dotnet run --project src/Dexcompiler.NuGetSigningCertificates.Cli -- sign \
 Verify signatures:
 
 ```bash
-dotnet run --project src/Dexcompiler.NuGetSigningCertificates.Cli -- verify \
-  --input ../other-project/artifacts
+nusign verify --input ../other-project/artifacts
 ```
 
 For machine-readable output in CI, add `--json` to `sign`, `verify`, or `generate-dev-cert`.

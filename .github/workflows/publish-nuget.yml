@@ -37,6 +37,9 @@ jobs:
       - name: Pack
         run: dotnet pack src/Dexcompiler.NuGetSigningCertificates/Dexcompiler.NuGetSigningCertificates.csproj --configuration Release --no-build --nologo -o artifacts
 
+      - name: Pack CLI tool
+        run: dotnet pack src/Dexcompiler.NuGetSigningCertificates.Cli/Dexcompiler.NuGetSigningCertificates.Cli.csproj --configuration Release --no-build --nologo -o artifacts
+
       - name: Push to NuGet
         run: dotnet nuget push artifacts/*.nupkg --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
 

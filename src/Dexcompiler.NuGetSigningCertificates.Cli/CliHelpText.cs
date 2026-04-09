@@ -4,7 +4,7 @@ internal static class CliHelpText
 {
     public static string Root =>
         """
-        Dexcompiler.NuGetSigningCertificates.Cli
+        nusign
 
         Commands:
           sign               Sign .nupkg/.snupkg artifacts using a PFX certificate.

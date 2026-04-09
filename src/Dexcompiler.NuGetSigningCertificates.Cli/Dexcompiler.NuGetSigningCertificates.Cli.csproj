@@ -6,14 +6,29 @@
     <LangVersion>preview</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
     <RootNamespace>Dexcompiler.NuGetSigningCertificates.Cli</RootNamespace>
-    <AssemblyName>Dexcompiler.NuGetSigningCertificates.Cli</AssemblyName>
+    <AssemblyName>nusign</AssemblyName>
     <IsAotCompatible>true</IsAotCompatible>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>nusign</ToolCommandName>
+    <PackageId>Dexcompiler.NuGetSigningCertificates.Cli</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Dexter Ajoku</Authors>
+    <Description>CLI for signing and verifying NuGet packages with PFX certificates and RFC3161 timestamps.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>nuget;signing;cli;codesigning;pkcs12;pfx</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/dexcompiler/nuget-signing-certs</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Dexcompiler.NuGetSigningCertificates\Dexcompiler.NuGetSigningCertificates.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>

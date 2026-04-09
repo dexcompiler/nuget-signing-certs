@@ -34,6 +34,9 @@ jobs:
       - name: Pack
         run: dotnet pack src/Dexcompiler.NuGetSigningCertificates/Dexcompiler.NuGetSigningCertificates.csproj --configuration Release --no-build --nologo -o artifacts
 
+      - name: Pack CLI tool
+        run: dotnet pack src/Dexcompiler.NuGetSigningCertificates.Cli/Dexcompiler.NuGetSigningCertificates.Cli.csproj --configuration Release --no-build --nologo -o artifacts
+
       - name: Install NativeAOT prerequisites
         run: |
           sudo apt-get update
