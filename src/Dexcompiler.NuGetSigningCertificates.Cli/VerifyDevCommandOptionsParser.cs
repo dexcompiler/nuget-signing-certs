@@ -59,7 +59,7 @@ internal static class VerifyDevCommandOptionsParser
         out string? errorMessage)
     {
         int valueIndex = index + 1;
-        if (valueIndex >= args.Length || args[valueIndex].StartsWith("-", StringComparison.Ordinal))
+        if (valueIndex >= args.Length || args[valueIndex].StartsWith('-'))
         {
             value = string.Empty;
             errorMessage = $"Missing value for {optionName}.";
