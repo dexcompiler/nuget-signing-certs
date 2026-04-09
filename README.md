@@ -88,11 +88,14 @@ For machine-readable output in CI, add `--json` to `sign`, `verify`, or `generat
 
 ## CI/release behavior
 
-- CI validates restore/build/test and packaging for the library and CLI.
-- Tag pushes (`v*.*.*`) run publish workflow:
-  - package/push library to NuGet.org
-  - create GitHub release
-  - upload NativeAOT CLI binaries as release assets.
+- CI (`.github/workflows/ci.yml`) runs on pushes to `main` and pull requests, and performs:
+  - restore/build/test for solution projects
+  - library package creation
+  - Linux NativeAOT publish smoke test for the CLI.
+- Publish workflow (`.github/workflows/publish-nuget.yml`) runs on semver tag pushes (`v*.*.*`) or manual dispatch, and:
+  - pushes `.nupkg` and `.snupkg` to NuGet.org
+  - builds CLI NativeAOT artifacts (`linux-x64`, `win-x64`)
+  - creates a GitHub Release and uploads package/CLI artifacts.
 
 Required secret:
 - `NUGET_API_KEY` (NuGet.org publish token)
