@@ -72,8 +72,22 @@ export NUGET_SIGN_CERT_PASSWORD=<strong-password>
 nusign sign \
   --input ../other-project/artifacts \
   --pfx-path ./artifacts/dev-signing.pfx \
-  --timestamp-url https://timestamp.digicert.com \
+  --timestamp-url https://rfc3161.ai.moda \
+  --timestamp-url https://rfc3161.ai.moda/any \
+  --timestamp-url http://timestamp.digicert.com \
+  --timestamp-timeout-seconds 15 \
+  --timestamp-retries 2 \
+  --timestamp-retry-delay-ms 500 \
   --overwrite
+```
+
+Or provide fallback URLs from a file:
+
+```bash
+nusign sign \
+  --input ../other-project/artifacts \
+  --pfx-path ./artifacts/dev-signing.pfx \
+  --timestamp-url-file ./tsa-fallbacks.txt
 ```
 
 Verify signatures:
@@ -82,7 +96,33 @@ Verify signatures:
 nusign verify --input ../other-project/artifacts
 ```
 
-For machine-readable output in CI, add `--json` to `sign`, `verify`, or `generate-dev-cert`.
+Dev/self-signed signature presence checks (no trust-chain requirement):
+
+```bash
+nusign verify-dev --input ../other-project/artifacts
+```
+
+For machine-readable output in CI, add `--json` to `sign`, `verify`, `verify-dev`, or `generate-dev-cert`.
+
+## Recommended fallback TSA order
+
+1. `https://rfc3161.ai.moda`
+2. `https://rfc3161.ai.moda/any`
+3. `http://rfc3161.ai.moda`
+4. `http://timestamp.digicert.com`
+5. `http://timestamp.globalsign.com/tsa/r6advanced1`
+6. `http://rfc3161timestamp.globalsign.com/advanced`
+7. `http://timestamp.sectigo.com`
+8. `http://time.certum.pl`
+9. `http://timestamp.entrust.net/TSS/RFC3161sha2TS`
+10. `http://timestamp.acs.microsoft.com`
+
+## Verification behavior notes
+
+- `verify` is release-safe and trust-based by default.
+- `verify-dev` is explicit dev behavior (signature presence check only).
+- Self-signed certificates can fail strict trust verification (`NU3018`) by design.
+- Some HTTPS TSA endpoints may be blocked in specific runners/networks; fallback ordering is recommended.
 
 ## Suggested flow for external package signing
 
