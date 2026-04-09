@@ -50,6 +50,12 @@ Install as a .NET global tool:
 dotnet tool install -g Dexcompiler.NuGetSigningCertificates.Cli
 ```
 
+Alias package is also supported:
+
+```bash
+dotnet tool install -g nusign
+```
+
 Then run directly from your shell:
 
 ```bash
