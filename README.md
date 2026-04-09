@@ -11,6 +11,16 @@ This project is intentionally separate from `ed25519.cs`:
 - `ed25519.cs` remains focused on Ed25519 signatures and related key/CSR helpers.
 - `nuget-signing-certs` focuses on NuGet package-signing workflows that currently require RSA/X.509 code-signing profiles.
 
+## Why use `nusign` instead of raw `dotnet nuget` commands
+
+- Built-in timestamp resilience: multi-URL fallback, retry, and timeout controls.
+- Better diagnostics on timestamp failures: URL + attempt + concise reason before fallback.
+- Simpler package targeting for CI: path discovery for `.nupkg` and `.snupkg`.
+- Safer operator ergonomics: password via env var and redacted command display.
+- Clear verification intent:
+  - `verify` for strict trust-based validation
+  - `verify-dev` for explicit signature-presence checks in self-signed/dev workflows.
+
 ## Library features
 
 - Generate self-signed RSA code-signing certificates with secure defaults.
