@@ -1,8 +1,8 @@
 namespace Dexcompiler.NuGetSigningCertificates.Cli;
 
-internal static class VerifyCommandOptionsParser
+internal static class VerifyDevCommandOptionsParser
 {
-    public static bool TryParse(string[] args, out VerifyCommandOptions? options, out string? errorMessage, out bool showHelp)
+    public static bool TryParse(string[] args, out VerifyDevCommandOptions? options, out string? errorMessage, out bool showHelp)
     {
         ArgumentNullException.ThrowIfNull(args);
 
@@ -11,9 +11,6 @@ internal static class VerifyCommandOptionsParser
         showHelp = false;
 
         var inputs = new List<string>();
-        var certificateFingerprints = new List<string>();
-        string? configFile = null;
-        string? verbosity = null;
         bool jsonOutput = false;
 
         for (int index = 0; index < args.Length; index++)
@@ -26,23 +23,9 @@ internal static class VerifyCommandOptionsParser
                     showHelp = true;
                     return true;
                 case "--input":
-                    if (!TryReadRequiredValue(args, ref index, argument, out string inputPath, out errorMessage))
+                    if (!TryReadRequiredValue(args, ref index, argument, out string? inputValue, out errorMessage))
                         return false;
-                    inputs.Add(inputPath);
-                    break;
-                case "--certificate-fingerprint":
-                    if (!TryReadRequiredValue(args, ref index, argument, out string fingerprint, out errorMessage))
-                        return false;
-                    certificateFingerprints.Add(fingerprint);
-                    break;
-                case "--configfile":
-                    if (!TryReadRequiredValue(args, ref index, argument, out configFile, out errorMessage))
-                        return false;
-                    break;
-                case "--verbosity":
-                case "-v":
-                    if (!TryReadRequiredValue(args, ref index, argument, out verbosity, out errorMessage))
-                        return false;
+                    inputs.Add(inputValue);
                     break;
                 case "--json":
                     jsonOutput = true;
@@ -59,12 +42,9 @@ internal static class VerifyCommandOptionsParser
             return false;
         }
 
-        options = new VerifyCommandOptions
+        options = new VerifyDevCommandOptions
         {
             Inputs = inputs,
-            CertificateFingerprints = certificateFingerprints,
-            ConfigFile = configFile,
-            Verbosity = verbosity,
             JsonOutput = jsonOutput
         };
 

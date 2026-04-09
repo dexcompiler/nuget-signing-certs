@@ -4,7 +4,7 @@ namespace Dexcompiler.NuGetSigningCertificates.Cli;
 
 internal static class DotNetNuGetRunner
 {
-    public static CommandExecutionResult Run(IReadOnlyList<string> arguments)
+    public static CommandExecutionResult Run(IReadOnlyList<string> arguments, TimeSpan? timeout = null)
     {
         ArgumentNullException.ThrowIfNull(arguments);
 
@@ -25,14 +25,30 @@ internal static class DotNetNuGetRunner
         Task<string> stdOutTask = process.StandardOutput.ReadToEndAsync();
         Task<string> stdErrTask = process.StandardError.ReadToEndAsync();
         Task exitTask = process.WaitForExitAsync();
+        Task completion = Task.WhenAll(stdOutTask, stdErrTask, exitTask);
 
-        Task.WaitAll(stdOutTask, stdErrTask, exitTask);
+        bool timedOut = false;
+        if (timeout.HasValue)
+        {
+            bool completedInTime = completion.Wait(timeout.Value);
+            if (!completedInTime)
+            {
+                timedOut = true;
+                TryTerminateProcess(process);
+                completion.Wait();
+            }
+        }
+        else
+        {
+            completion.Wait();
+        }
 
         return new CommandExecutionResult
         {
             ExitCode = process.ExitCode,
             StandardOutput = stdOutTask.Result,
-            StandardError = stdErrTask.Result
+            StandardError = stdErrTask.Result,
+            TimedOut = timedOut
         };
     }
 
@@ -55,5 +71,18 @@ internal static class DotNetNuGetRunner
             return value;
 
         return $"\"{value.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
+    }
+
+    private static void TryTerminateProcess(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+        catch
+        {
+            // Best effort terminate on timeout; preserve original command output for diagnostics.
+        }
     }
 }

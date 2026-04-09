@@ -7,4 +7,6 @@ internal sealed class CommandExecutionResult
     public required string StandardOutput { get; init; }
 
     public required string StandardError { get; init; }
+
+    public bool TimedOut { get; init; }
 }

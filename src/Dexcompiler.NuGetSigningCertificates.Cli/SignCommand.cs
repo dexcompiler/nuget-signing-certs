@@ -5,6 +5,11 @@ namespace Dexcompiler.NuGetSigningCertificates.Cli;
 
 internal static class SignCommand
 {
+    internal static Func<IReadOnlyList<string>, TimeSpan?, CommandExecutionResult> NuGetRunner { get; set; } = DotNetNuGetRunner.Run;
+
+    internal static void ResetRunner()
+        => NuGetRunner = DotNetNuGetRunner.Run;
+
     public static int Execute(string[] args)
     {
         if (!SignCommandOptionsParser.TryParse(args, out SignCommandOptions? options, out string? errorMessage, out bool showHelp))
@@ -29,20 +34,7 @@ internal static class SignCommand
         var results = new List<PackageCommandResult>(packagePaths.Count);
 
         foreach (string packagePath in packagePaths)
-        {
-            List<string> commandArguments = BuildSignArguments(packagePath, options!);
-            int passwordArgumentIndex = FindPasswordArgumentIndex(commandArguments);
-
-            CommandExecutionResult execution = DotNetNuGetRunner.Run(commandArguments);
-            results.Add(new PackageCommandResult
-            {
-                PackagePath = packagePath,
-                DisplayCommand = passwordArgumentIndex >= 0
-                    ? DotNetNuGetRunner.FormatCommand(commandArguments, passwordArgumentIndex)
-                    : DotNetNuGetRunner.FormatCommand(commandArguments),
-                Execution = execution
-            });
-        }
+            results.Add(SignPackage(packagePath, options!));
 
         bool success = results.All(static result => result.Execution.ExitCode == 0);
         if (options!.JsonOutput)
@@ -53,7 +45,69 @@ internal static class SignCommand
         return success ? CliExitCodes.Success : CliExitCodes.ExecutionFailure;
     }
 
-    private static List<string> BuildSignArguments(string packagePath, SignCommandOptions options)
+    private static PackageCommandResult SignPackage(string packagePath, SignCommandOptions options)
+    {
+        var failedAttempts = new List<SignAttemptResult>();
+        int maxAttemptsPerUrl = options.TimestampRetries + 1;
+        CommandExecutionResult? lastExecution = null;
+        string? lastDisplayCommand = null;
+
+        for (int timestampIndex = 0; timestampIndex < options.TimestampUrls.Count; timestampIndex++)
+        {
+            string timestampUrl = options.TimestampUrls[timestampIndex];
+            for (int attempt = 1; attempt <= maxAttemptsPerUrl; attempt++)
+            {
+                List<string> commandArguments = BuildSignArguments(packagePath, options, timestampUrl);
+                int passwordArgumentIndex = FindPasswordArgumentIndex(commandArguments);
+                string displayCommand = passwordArgumentIndex >= 0
+                    ? DotNetNuGetRunner.FormatCommand(commandArguments, passwordArgumentIndex)
+                    : DotNetNuGetRunner.FormatCommand(commandArguments);
+
+                CommandExecutionResult execution = NuGetRunner(commandArguments, TimeSpan.FromSeconds(options.TimestampTimeoutSeconds));
+                if (execution.ExitCode == 0)
+                {
+                    return new PackageCommandResult
+                    {
+                        PackagePath = packagePath,
+                        DisplayCommand = displayCommand,
+                        Execution = execution,
+                        FailedAttempts = failedAttempts
+                    };
+                }
+
+                string reason = TimestampFailureReasonClassifier.Classify(execution);
+                failedAttempts.Add(new SignAttemptResult
+                {
+                    TimestampUrl = timestampUrl,
+                    AttemptNumber = attempt,
+                    MaxAttemptsForUrl = maxAttemptsPerUrl,
+                    FailureReason = reason,
+                    Execution = execution
+                });
+
+                lastExecution = execution;
+                lastDisplayCommand = displayCommand;
+                Console.Error.WriteLine(
+                    $"[WARN] package={packagePath} timestamp-url={timestampUrl} attempt={attempt}/{maxAttemptsPerUrl} reason={reason}");
+
+                if (attempt < maxAttemptsPerUrl && options.TimestampRetryDelayMilliseconds > 0)
+                    Thread.Sleep(options.TimestampRetryDelayMilliseconds);
+            }
+
+            if (timestampIndex < options.TimestampUrls.Count - 1)
+                Console.Error.WriteLine($"[INFO] Falling back to next timestamp URL for package {packagePath}.");
+        }
+
+        return new PackageCommandResult
+        {
+            PackagePath = packagePath,
+            DisplayCommand = lastDisplayCommand!,
+            Execution = lastExecution!,
+            FailedAttempts = failedAttempts
+        };
+    }
+
+    private static List<string> BuildSignArguments(string packagePath, SignCommandOptions options, string timestampUrl)
     {
         var commandArguments = new List<string>
         {
@@ -65,7 +119,7 @@ internal static class SignCommand
             "--certificate-password",
             options.PfxPassword,
             "--timestamper",
-            options.TimestampUrl,
+            timestampUrl,
             "--hash-algorithm",
             options.HashAlgorithm
         };
@@ -108,6 +162,20 @@ internal static class SignCommand
             writer.WriteNumber("exitCode", result.Execution.ExitCode);
             writer.WriteString("standardOutput", result.Execution.StandardOutput);
             writer.WriteString("standardError", result.Execution.StandardError);
+            writer.WritePropertyName("failedAttempts");
+            writer.WriteStartArray();
+            foreach (SignAttemptResult attempt in result.FailedAttempts ?? [])
+            {
+                writer.WriteStartObject();
+                writer.WriteString("timestampUrl", attempt.TimestampUrl);
+                writer.WriteNumber("attempt", attempt.AttemptNumber);
+                writer.WriteNumber("maxAttemptsForUrl", attempt.MaxAttemptsForUrl);
+                writer.WriteString("failureReason", attempt.FailureReason);
+                writer.WriteNumber("exitCode", attempt.Execution.ExitCode);
+                writer.WriteBoolean("timedOut", attempt.Execution.TimedOut);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
             writer.WriteEndObject();
         }
 
@@ -129,7 +197,8 @@ internal static class SignCommand
             }
 
             Console.Error.WriteLine($"[FAILED] {result.PackagePath}");
-            Console.Error.WriteLine(result.DisplayCommand);
+            if (!string.IsNullOrWhiteSpace(result.DisplayCommand))
+                Console.Error.WriteLine(result.DisplayCommand);
 
             if (!string.IsNullOrWhiteSpace(result.Execution.StandardError))
                 Console.Error.WriteLine(result.Execution.StandardError.Trim());

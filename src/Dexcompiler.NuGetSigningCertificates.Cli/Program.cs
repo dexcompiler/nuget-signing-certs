@@ -17,6 +17,7 @@ internal static class Program
         {
             "sign" => SignCommand.Execute(commandArgs),
             "verify" => VerifyCommand.Execute(commandArgs),
+            "verify-dev" => VerifyDevCommand.Execute(commandArgs),
             "generate-dev-cert" => GenerateDevCertificateCommand.Execute(commandArgs),
             _ => ExitWithUsageError($"Unknown command '{command}'.")
         };
