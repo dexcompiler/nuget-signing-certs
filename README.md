@@ -6,10 +6,11 @@
 
 ## Why this exists
 
-This project is intentionally separate from `ed25519.cs`:
+`nusign` exists to make NuGet package signing reliable and explicit in real-world CI/CD environments.
 
-- `ed25519.cs` remains focused on Ed25519 signatures and related key/CSR helpers.
-- `nuget-signing-certs` focuses on NuGet package-signing workflows that currently require RSA/X.509 code-signing profiles.
+- Raw signing flows often fail on transient TSA/network issues; `nusign` provides built-in fallback and retry behavior.
+- Teams need clear verification semantics; `nusign` separates strict trust verification from explicit dev/self-signed checks.
+- Signing, verifying, and dev cert workflows are easier to automate when exposed as one consistent CLI + library surface.
 
 ## Why use `nusign` instead of raw `dotnet nuget` commands
 
