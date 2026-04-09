@@ -24,9 +24,9 @@ internal static class DotNetNuGetRunner
 
         Task<string> stdOutTask = process.StandardOutput.ReadToEndAsync();
         Task<string> stdErrTask = process.StandardError.ReadToEndAsync();
+        Task exitTask = process.WaitForExitAsync();
 
-        process.WaitForExit();
-        Task.WaitAll(stdOutTask, stdErrTask);
+        Task.WaitAll(stdOutTask, stdErrTask, exitTask);
 
         return new CommandExecutionResult
         {
