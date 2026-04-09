@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dexcompiler.NuGetSigningCertificates\Dexcompiler.NuGetSigningCertificates.csproj" />
+    <ProjectReference Include="..\..\src\Dexcompiler.NuGetSigningCertificates.Cli\Dexcompiler.NuGetSigningCertificates.Cli.csproj" />
   </ItemGroup>
 
 </Project>

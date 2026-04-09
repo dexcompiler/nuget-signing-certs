@@ -34,3 +34,17 @@ jobs:
       - name: Pack
         run: dotnet pack src/Dexcompiler.NuGetSigningCertificates/Dexcompiler.NuGetSigningCertificates.csproj --configuration Release --no-build --nologo -o artifacts
 
+      - name: Pack CLI tool
+        run: dotnet pack src/Dexcompiler.NuGetSigningCertificates.Cli/Dexcompiler.NuGetSigningCertificates.Cli.csproj --configuration Release --no-build --nologo -o artifacts
+
+      - name: Pack CLI tool alias (nusign)
+        run: dotnet pack src/Dexcompiler.NuGetSigningCertificates.Cli/Dexcompiler.NuGetSigningCertificates.Cli.csproj --configuration Release --no-build --nologo -o artifacts /p:PackageId=nusign
+
+      - name: Install NativeAOT prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev
+
+      - name: Publish CLI (NativeAOT smoke)
+        run: dotnet publish src/Dexcompiler.NuGetSigningCertificates.Cli/Dexcompiler.NuGetSigningCertificates.Cli.csproj --configuration Release --nologo --self-contained true -r linux-x64 -p:PublishAot=true -o artifacts/cli/linux-x64
+

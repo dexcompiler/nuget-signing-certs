@@ -1,15 +1,17 @@
 # nuget-signing-certs
 
-`nuget-signing-certs` is a .NET companion library for generating NuGet-compatible RSA code-signing certificates, exporting PFX artifacts, and validating certificate profiles before signing packages.
+`nuget-signing-certs` provides:
+1. A **.NET library** for NuGet signing certificate generation/validation workflows.
+2. A **CLI** (`Dexcompiler.NuGetSigningCertificates.Cli`) for signing and verifying already-packed NuGet artifacts (`.nupkg` + `.snupkg`).
 
 ## Why this exists
 
 This project is intentionally separate from `ed25519.cs`:
 
 - `ed25519.cs` remains focused on Ed25519 signatures and related key/CSR helpers.
-- `nuget-signing-certs` focuses on NuGet package-signing certificate workflows that currently require RSA/X.509 code-signing profiles.
+- `nuget-signing-certs` focuses on NuGet package-signing workflows that currently require RSA/X.509 code-signing profiles.
 
-## Features
+## Library features
 
 - Generate self-signed RSA code-signing certificates with secure defaults.
 - Export and import PKCS#12 (`.pfx`) certificate bundles.
@@ -19,7 +21,7 @@ This project is intentionally separate from `ed25519.cs`:
   - Extended Key Usage containing `codeSigning` (`1.3.6.1.5.5.7.3.3`).
   - Certificate validity window checks.
 
-## Quick start
+## Library quick start
 
 ```csharp
 using Dexcompiler.NuGetSigningCertificates;
@@ -40,10 +42,58 @@ if (!validation.IsValid)
 byte[] pfx = Pkcs12CertificateStore.Export(cert, "strong-password");
 ```
 
-## Suggested signing flow
+## CLI quick start (`nusign`)
 
-1. Generate or load your signing certificate.
-2. Validate with `NuGetSigningCertificateValidator`.
-3. Export `.pfx`.
-4. Use `dotnet nuget sign` with your certificate/PFX.
+Install as a .NET global tool:
+
+```bash
+dotnet tool install -g Dexcompiler.NuGetSigningCertificates.Cli
+```
+
+Alias package is also supported:
+
+```bash
+dotnet tool install -g nusign
+```
+
+Then run directly from your shell:
+
+```bash
+nusign --help
+```
+
+Generate local/dev signing certificate PFX:
+
+```bash
+nusign generate-dev-cert \
+  --output-pfx ./artifacts/dev-signing.pfx \
+  --password "<strong-password>" \
+  --subject "CN=My NuGet Dev Signing Cert"
+```
+
+Sign packages from another already-packed project:
+
+```bash
+export NUGET_SIGN_CERT_PASSWORD=<strong-password>
+nusign sign \
+  --input ../other-project/artifacts \
+  --pfx-path ./artifacts/dev-signing.pfx \
+  --timestamp-url https://timestamp.digicert.com \
+  --overwrite
+```
+
+Verify signatures:
+
+```bash
+nusign verify --input ../other-project/artifacts
+```
+
+For machine-readable output in CI, add `--json` to `sign`, `verify`, or `generate-dev-cert`.
+
+## Suggested flow for external package signing
+
+1. Generate or load a signing certificate (`.pfx`).
+2. Sign the target project output artifacts (`.nupkg` and `.snupkg`) with CLI `sign`.
+3. Run CLI `verify` to confirm signatures.
+4. Publish signed packages.
 
