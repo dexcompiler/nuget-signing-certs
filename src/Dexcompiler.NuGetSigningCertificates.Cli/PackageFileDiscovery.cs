@@ -41,7 +41,7 @@ internal static class PackageFileDiscovery
             .ToArray();
     }
 
-    private static void AddFromDirectory(string directoryPath, bool includeSnupkg, ISet<string> discovered)
+    private static void AddFromDirectory(string directoryPath, bool includeSnupkg, HashSet<string> discovered)
     {
         foreach (string packagePath in Directory.EnumerateFiles(directoryPath, "*.nupkg", SearchOption.AllDirectories))
             discovered.Add(Path.GetFullPath(packagePath));
@@ -53,7 +53,7 @@ internal static class PackageFileDiscovery
             discovered.Add(Path.GetFullPath(packagePath));
     }
 
-    private static void AddFileIfSupported(string packagePath, bool includeSnupkg, ISet<string> discovered)
+    private static void AddFileIfSupported(string packagePath, bool includeSnupkg, HashSet<string> discovered)
     {
         string extension = Path.GetExtension(packagePath);
         if (string.Equals(extension, ".nupkg", StringComparison.OrdinalIgnoreCase))
