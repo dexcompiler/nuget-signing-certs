@@ -114,14 +114,38 @@ jobs:
         with:
           path: artifacts/release
 
-      - name: Create GitHub Release
+      - name: Prepare release assets
+        run: |
+          mkdir -p artifacts/release-assets
+
+          shopt -s nullglob
+          packages=(artifacts/release/nuget-packages/nusign.*.nupkg)
+          if [ "${#packages[@]}" -eq 0 ]; then
+            echo "No nusign package artifacts found for release upload."
+            exit 1
+          fi
+          cp "${packages[@]}" artifacts/release-assets/
+
+          for dir in artifacts/release/cli-*; do
+            [ -d "$dir" ] || continue
+            runtime="${dir##*/cli-}"
+            archive="artifacts/release-assets/nusign-${runtime}.zip"
+            (cd "$dir" && zip -r "$GITHUB_WORKSPACE/$archive" .)
+          done
+
+      - name: Create or update GitHub Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          mapfile -t files < <(find artifacts/release -type f)
+          mapfile -t files < <(find artifacts/release-assets -maxdepth 1 -type f | sort)
           if [ "${#files[@]}" -eq 0 ]; then
             echo "No release artifacts found."
             exit 1
           fi
-          gh release create "${{ github.ref_name }}" "${files[@]}" --generate-notes --verify-tag
+
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            gh release upload "${{ github.ref_name }}" "${files[@]}" --clobber
+          else
+            gh release create "${{ github.ref_name }}" "${files[@]}" --generate-notes --verify-tag
+          fi
 
