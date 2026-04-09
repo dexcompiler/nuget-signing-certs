@@ -40,22 +40,23 @@ jobs:
       - name: Pack CLI tool
         run: dotnet pack src/Dexcompiler.NuGetSigningCertificates.Cli/Dexcompiler.NuGetSigningCertificates.Cli.csproj --configuration Release --no-build --nologo -o artifacts
 
-      - name: Pack CLI tool alias (nusign)
-        run: dotnet pack src/Dexcompiler.NuGetSigningCertificates.Cli/Dexcompiler.NuGetSigningCertificates.Cli.csproj --configuration Release --no-build --nologo -o artifacts /p:PackageId=nusign
-
-      - name: Push to NuGet
-        run: dotnet nuget push artifacts/*.nupkg --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
-
-      - name: Push symbols to NuGet
-        run: dotnet nuget push artifacts/*.snupkg --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: Push nusign to NuGet
+        run: |
+          shopt -s nullglob
+          packages=(artifacts/nusign.*.nupkg)
+          if [ "${#packages[@]}" -eq 0 ]; then
+            echo "No nusign package artifacts found."
+            exit 1
+          fi
+          for pkg in "${packages[@]}"; do
+            dotnet nuget push "$pkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
-          path: |
-            artifacts/*.nupkg
-            artifacts/*.snupkg
+          path: artifacts/nusign.*.nupkg
           if-no-files-found: error
 
   build-cli-assets:

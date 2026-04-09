@@ -11,7 +11,7 @@
     <OutputType>Library</OutputType>
 
     <PackageId>Dexcompiler.NuGetSigningCertificates</PackageId>
-    <Version>0.1.0</Version>
+    <Version>1.0.0</Version>
     <Authors>Dexter Ajoku</Authors>
     <Description>Generate NuGet-compatible RSA code-signing certificates, export PFX artifacts, and validate certificate profiles before signing packages.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

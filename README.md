@@ -2,7 +2,7 @@
 
 `nuget-signing-certs` provides:
 1. A **.NET library** for NuGet signing certificate generation/validation workflows.
-2. A **CLI** (`Dexcompiler.NuGetSigningCertificates.Cli`) for signing and verifying already-packed NuGet artifacts (`.nupkg` + `.snupkg`).
+2. A **CLI** (`nusign`) for signing and verifying already-packed NuGet artifacts (`.nupkg` + `.snupkg`).
 
 ## Why this exists
 
@@ -45,12 +45,6 @@ byte[] pfx = Pkcs12CertificateStore.Export(cert, "strong-password");
 ## CLI quick start (`nusign`)
 
 Install as a .NET global tool:
-
-```bash
-dotnet tool install -g Dexcompiler.NuGetSigningCertificates.Cli
-```
-
-Alias package is also supported:
 
 ```bash
 dotnet tool install -g nusign

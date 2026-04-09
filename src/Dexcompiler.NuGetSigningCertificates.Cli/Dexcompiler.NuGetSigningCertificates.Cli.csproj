@@ -12,7 +12,7 @@
     <IsAotCompatible>true</IsAotCompatible>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>nusign</ToolCommandName>
-    <PackageId>Dexcompiler.NuGetSigningCertificates.Cli</PackageId>
+    <PackageId>nusign</PackageId>
     <Version>1.0.0</Version>
     <Authors>Dexter Ajoku</Authors>
     <Description>CLI for signing and verifying NuGet packages with PFX certificates and RFC3161 timestamps.</Description>
