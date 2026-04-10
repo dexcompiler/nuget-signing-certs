@@ -8,7 +8,13 @@ internal sealed class SignCommandOptions
 
     public required string PfxPassword { get; init; }
 
-    public required string TimestampUrl { get; init; }
+    public required IReadOnlyList<string> TimestampUrls { get; init; }
+
+    public required int TimestampTimeoutSeconds { get; init; }
+
+    public required int TimestampRetries { get; init; }
+
+    public required int TimestampRetryDelayMilliseconds { get; init; }
 
     public required string HashAlgorithm { get; init; }
 

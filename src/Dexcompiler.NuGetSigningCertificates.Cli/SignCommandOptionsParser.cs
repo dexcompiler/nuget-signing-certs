@@ -2,6 +2,10 @@ namespace Dexcompiler.NuGetSigningCertificates.Cli;
 
 internal static class SignCommandOptionsParser
 {
+    private const int DefaultTimestampTimeoutSeconds = 15;
+    private const int DefaultTimestampRetries = 2;
+    private const int DefaultTimestampRetryDelayMilliseconds = 500;
+
     private static readonly HashSet<string> AllowedHashAlgorithms = new(StringComparer.OrdinalIgnoreCase)
     {
         "SHA256",
@@ -21,7 +25,11 @@ internal static class SignCommandOptionsParser
         string? pfxPath = null;
         string? pfxPassword = null;
         string pfxPasswordEnvName = "NUGET_SIGN_CERT_PASSWORD";
-        string? timestampUrl = null;
+        var timestampUrlsFromArgs = new List<string>();
+        string? timestampUrlFilePath = null;
+        int timestampTimeoutSeconds = DefaultTimestampTimeoutSeconds;
+        int timestampRetries = DefaultTimestampRetries;
+        int timestampRetryDelayMilliseconds = DefaultTimestampRetryDelayMilliseconds;
         string hashAlgorithm = "SHA256";
         bool includeSnupkg = true;
         bool overwrite = false;
@@ -54,8 +62,40 @@ internal static class SignCommandOptionsParser
                         return false;
                     break;
                 case "--timestamp-url":
-                    if (!TryReadRequiredValue(args, ref index, argument, out timestampUrl, out errorMessage))
+                    if (!TryReadRequiredValue(args, ref index, argument, out string timestampUrl, out errorMessage))
                         return false;
+                    timestampUrlsFromArgs.Add(timestampUrl);
+                    break;
+                case "--timestamp-url-file":
+                    if (!TryReadRequiredValue(args, ref index, argument, out timestampUrlFilePath, out errorMessage))
+                        return false;
+                    break;
+                case "--timestamp-timeout-seconds":
+                    if (!TryReadRequiredValue(args, ref index, argument, out string timeoutText, out errorMessage))
+                        return false;
+                    if (!int.TryParse(timeoutText, out timestampTimeoutSeconds) || timestampTimeoutSeconds < 1 || timestampTimeoutSeconds > 300)
+                    {
+                        errorMessage = "--timestamp-timeout-seconds must be an integer between 1 and 300.";
+                        return false;
+                    }
+                    break;
+                case "--timestamp-retries":
+                    if (!TryReadRequiredValue(args, ref index, argument, out string retriesText, out errorMessage))
+                        return false;
+                    if (!int.TryParse(retriesText, out timestampRetries) || timestampRetries < 0 || timestampRetries > 10)
+                    {
+                        errorMessage = "--timestamp-retries must be an integer between 0 and 10.";
+                        return false;
+                    }
+                    break;
+                case "--timestamp-retry-delay-ms":
+                    if (!TryReadRequiredValue(args, ref index, argument, out string delayText, out errorMessage))
+                        return false;
+                    if (!int.TryParse(delayText, out timestampRetryDelayMilliseconds) || timestampRetryDelayMilliseconds < 0 || timestampRetryDelayMilliseconds > 60000)
+                    {
+                        errorMessage = "--timestamp-retry-delay-ms must be an integer between 0 and 60000.";
+                        return false;
+                    }
                     break;
                 case "--hash-algorithm":
                     if (!TryReadRequiredValue(args, ref index, argument, out hashAlgorithm, out errorMessage))
@@ -95,16 +135,14 @@ internal static class SignCommandOptionsParser
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(timestampUrl))
+        IReadOnlyList<string> timestampUrls;
+        try
         {
-            errorMessage = "--timestamp-url is required.";
-            return false;
+            timestampUrls = BuildTimestampUrls(timestampUrlsFromArgs, timestampUrlFilePath);
         }
-
-        if (!Uri.TryCreate(timestampUrl, UriKind.Absolute, out Uri? parsedTimestampUrl) ||
-            (parsedTimestampUrl.Scheme != Uri.UriSchemeHttp && parsedTimestampUrl.Scheme != Uri.UriSchemeHttps))
+        catch (Exception exception)
         {
-            errorMessage = "--timestamp-url must be an absolute http/https URL.";
+            errorMessage = exception.Message;
             return false;
         }
 
@@ -128,7 +166,10 @@ internal static class SignCommandOptionsParser
             Inputs = inputs,
             PfxPath = pfxPath,
             PfxPassword = pfxPassword,
-            TimestampUrl = timestampUrl,
+            TimestampUrls = timestampUrls,
+            TimestampTimeoutSeconds = timestampTimeoutSeconds,
+            TimestampRetries = timestampRetries,
+            TimestampRetryDelayMilliseconds = timestampRetryDelayMilliseconds,
             HashAlgorithm = hashAlgorithm.ToUpperInvariant(),
             IncludeSnupkg = includeSnupkg,
             Overwrite = overwrite,
@@ -146,7 +187,7 @@ internal static class SignCommandOptionsParser
         out string? errorMessage)
     {
         int valueIndex = index + 1;
-        if (valueIndex >= args.Length || args[valueIndex].StartsWith("-", StringComparison.Ordinal))
+        if (valueIndex >= args.Length || args[valueIndex].StartsWith('-'))
         {
             value = string.Empty;
             errorMessage = $"Missing value for {optionName}.";
@@ -157,5 +198,41 @@ internal static class SignCommandOptionsParser
         index = valueIndex;
         errorMessage = null;
         return true;
+    }
+
+    private static IReadOnlyList<string> BuildTimestampUrls(IReadOnlyList<string> cliUrls, string? timestampUrlFilePath)
+    {
+        var orderedUrls = new List<string>();
+        var dedup = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string cliUrl in cliUrls)
+            AddTimestampUrl(orderedUrls, dedup, cliUrl);
+
+        if (!string.IsNullOrWhiteSpace(timestampUrlFilePath))
+        {
+            foreach (string fileUrl in TimestampUrlFileReader.ReadUrls(timestampUrlFilePath))
+                AddTimestampUrl(orderedUrls, dedup, fileUrl);
+        }
+
+        if (orderedUrls.Count == 0)
+            throw new InvalidOperationException("At least one timestamp URL is required via --timestamp-url or --timestamp-url-file.");
+
+        return orderedUrls;
+    }
+
+    private static void AddTimestampUrl(List<string> orderedUrls, HashSet<string> dedup, string candidateUrl)
+    {
+        if (string.IsNullOrWhiteSpace(candidateUrl))
+            throw new InvalidOperationException("Timestamp URL values must not be empty.");
+
+        if (!Uri.TryCreate(candidateUrl, UriKind.Absolute, out Uri? parsedTimestampUrl) ||
+            (parsedTimestampUrl.Scheme != Uri.UriSchemeHttp && parsedTimestampUrl.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new InvalidOperationException($"Timestamp URL must be absolute http/https: {candidateUrl}");
+        }
+
+        string normalized = parsedTimestampUrl.AbsoluteUri;
+        if (dedup.Add(normalized))
+            orderedUrls.Add(normalized);
     }
 }

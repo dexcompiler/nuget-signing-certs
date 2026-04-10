@@ -30,13 +30,7 @@ internal static class VerifyCommand
 
         foreach (string packagePath in packagePaths)
         {
-            List<string> commandArguments =
-            [
-                "nuget",
-                "verify",
-                "--all",
-                packagePath
-            ];
+            List<string> commandArguments = BuildVerifyArguments(packagePath, options!);
 
             CommandExecutionResult execution = DotNetNuGetRunner.Run(commandArguments);
             results.Add(new PackageCommandResult
@@ -54,6 +48,37 @@ internal static class VerifyCommand
             WriteTextResult(results, success);
 
         return success ? CliExitCodes.Success : CliExitCodes.ExecutionFailure;
+    }
+
+    private static List<string> BuildVerifyArguments(string packagePath, VerifyCommandOptions options)
+    {
+        var commandArguments = new List<string>
+        {
+            "nuget",
+            "verify",
+            "--all",
+            packagePath
+        };
+
+        foreach (string fingerprint in options.CertificateFingerprints)
+        {
+            commandArguments.Add("--certificate-fingerprint");
+            commandArguments.Add(fingerprint);
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.ConfigFile))
+        {
+            commandArguments.Add("--configfile");
+            commandArguments.Add(options.ConfigFile);
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Verbosity))
+        {
+            commandArguments.Add("--verbosity");
+            commandArguments.Add(options.Verbosity);
+        }
+
+        return commandArguments;
     }
 
     private static void WriteJsonResult(IEnumerable<PackageCommandResult> results, bool success)
